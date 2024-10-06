@@ -6,6 +6,11 @@ const jwt = require('jsonwebtoken')
 
 const {User} = require('./../db')
 const {JWT_SECRET} = require('./../config')
+const {authMiddleware} = require('./../middleware')
+
+
+//Applying authentication before every end-points
+router.use(authMiddleware)
 
 
 
@@ -119,6 +124,62 @@ router.post("/signin", async (req, res) => {
 
 })
 
+
+
+//UPDATE user
+
+const updateBody = zod.object({
+    password : zod.string().optional(),
+    firstName : zod.string().optional(),
+    lastName : zod.string().optional()
+})
+
+router.put("/update", async (req, res) => {
+    
+    const success = updateBody.safeParse(req.body)
+    if(!suceess){
+        res.status(411)
+            .json({
+                msg : "Invalid details entered"
+            })
+    }
+
+    //Finding the user
+    const userFromDB = await User.findOne({
+        firstName : req.body.firstName,
+        lastName : req.body.lastName,
+        password : req.body.password
+    })
+
+    if(!userFromDB){
+        res.status(403)
+            .json({
+                msg : "No data exists for the given user!!"
+            })
+    }
+
+
+    //updating the user
+    userFromDB._id = req.userId
+    userFromDB.firstName = req.body.firstName
+    userFromDB.lastName = req.body.lastName
+    userFromDB.password = req.body.password
+
+
+    //OR, Updating directly
+    // await User.updateOne({
+    //     _id : req.userId    //updated from authMiddleware
+    //     },   
+    //     req.body,
+    //     {runValidators : true}
+    // )
+
+    res.status(200)
+        .json({
+            msg : "User updated successfully!!"
+        })
+
+})
 
 
 module.exports = {
